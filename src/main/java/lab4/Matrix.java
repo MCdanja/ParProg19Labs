@@ -79,12 +79,37 @@ public class Matrix {
     
     public Matrix transpone() {
         Matrix transponeMatrix = new Matrix(n);
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                transponeMatrix.setElement(i, j, getElement(j, i));
-            }
+        final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        final List<Future<?>> futures = new ArrayList<Future<?>>();
+        final int range = n / nThreads;
+        for (int count = 0; count < nThreads; ++count) {
+            final int startAt = count * range;
+            final int endAt = startAt + range;
+            executorService.submit(() -> {
+                for (int i = startAt; i < endAt; i++) {
+                    transponeMatrix.transponeParallelFunc(i, this);
+                }
+            });
         }
+        awaitTerminationAfterShutdown(executorService);
+
         return transponeMatrix;
+    }
+
+    private void transponeParallelFunc(int i, Matrix matrix) {
+        final ExecutorService executorService2 = Executors.newFixedThreadPool(nThreads);
+        final List<Future<?>> futures2 = new ArrayList<Future<?>>();
+        final int range2 = n / nThreads;
+        for (int count2 = 0; count2 < nThreads; ++count2) {
+            final int startAt2 = count2 * range2;
+            final int endAt2 = startAt2 + range2;
+            executorService2.submit(() -> {
+                for (int j = startAt2; j < endAt2; j++) {
+                    setElement(i, j, matrix.getElement(j, i));
+                }
+            });
+        }
+        awaitTerminationAfterShutdown(executorService2);
     }
     
     //рекурсивная функция - вычисляет значение определителя. Если на входе определитель 2х2 - просто вычисляем (крест-на-крест), иначе раскладываем на миноры. Для каждого минора вычисляем ЕГО определитель, рекурсивно вызывая ту же функцию..
