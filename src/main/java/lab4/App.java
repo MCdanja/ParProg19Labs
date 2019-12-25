@@ -18,7 +18,12 @@ public class App {
         matrix.fillRandomValues();
         matrix.displayMatrix();
         System.out.println(matrix.calculateDet());
-        Matrix inverseMatrix = matrix.getInverse();
+        Matrix inverseMatrix = null;
+        try {
+            inverseMatrix = matrix.getInverse();
+        } catch (DeterminantIsZero determinantIsZero) {
+            determinantIsZero.printStackTrace();
+        }
         System.out.println(inverseMatrix.getMatrixKoef());
         inverseMatrix.displayDoubleMatrix();
         inverseMatrix.displayMatrix();

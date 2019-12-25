@@ -9,22 +9,22 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class Matrix {
-    
-    public int nThreads;
-    
+
+    private int nThreads;
+
     private int n;
     private long[][] mainMatrix;
     private double matrixKoef;
     private double[][] doubleMatrix;
-    
+
     public Matrix(int n) {
         this.n = n;
-        nThreads = n;
+        nThreads = 5;
         this.mainMatrix = new long[this.n][this.n];
         doubleMatrix = new double[n][n];
         matrixKoef = 1;
     }
-    
+
     public Matrix(long[][] paramMatrix) {
         this.n = paramMatrix.length;
         nThreads = n;
@@ -32,33 +32,59 @@ public class Matrix {
         doubleMatrix = new double[n][n];
         matrixKoef = 1;
     }
-    
+
     public long getElement(int n, int m) {
         return this.mainMatrix[n][m];
     }
-    
+
     public void setElement(int n, int m, long value) {
         this.mainMatrix[n][m] = value;
     }
-    
+
     public int getN() {
         return this.n;
     }
-    
+
     public double getMatrixKoef() {
         return matrixKoef;
     }
-    
+
     public void fillRandomValues() {
         Random rand = new Random();
-        
+
         for (int i = 0; i < this.n; i++) {
             for (int j = 0; j < this.n; j++) {
                 this.mainMatrix[i][j] = rand.nextInt(7) - 3;
             }
         }
     }
-    
+
+    public void fillAsE() {
+        for (int i = 0; i < this.n; i++) {
+            for (int j = 0; j < this.n; j++) {
+                if (i == j) {
+                    mainMatrix[i][j] = 1;
+                    doubleMatrix[i][j] = 1;
+                } else {
+                    mainMatrix[i][j] = 0;
+                    doubleMatrix[i][j] = 0;
+                }
+            }
+        }
+    }
+
+    public boolean equals(Matrix matrix) {
+        if (n != matrix.n)
+            return false;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (mainMatrix[i][j] != matrix.mainMatrix[i][j])
+                    return false;
+            }
+        }
+        return true;
+    }
+
     public void displayMatrix() {
         for (int i = 0; i < this.n; i++) {
             for (int j = 0; j < this.n; j++) {
@@ -67,7 +93,7 @@ public class Matrix {
             System.out.println();
         }
     }
-    
+
     public void displayDoubleMatrix() {
         for (int i = 0; i < this.n; i++) {
             for (int j = 0; j < this.n; j++) {
@@ -76,11 +102,10 @@ public class Matrix {
             System.out.println();
         }
     }
-    
+
     public Matrix transpone() {
         Matrix transponeMatrix = new Matrix(n);
         final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
-        final List<Future<?>> futures = new ArrayList<Future<?>>();
         final int range = n / nThreads;
         for (int count = 0; count < nThreads; ++count) {
             final int startAt = count * range;
@@ -98,7 +123,6 @@ public class Matrix {
 
     private void transponeParallelFunc(int i, Matrix matrix) {
         final ExecutorService executorService2 = Executors.newFixedThreadPool(nThreads);
-        final List<Future<?>> futures2 = new ArrayList<Future<?>>();
         final int range2 = n / nThreads;
         for (int count2 = 0; count2 < nThreads; ++count2) {
             final int startAt2 = count2 * range2;
@@ -111,8 +135,7 @@ public class Matrix {
         }
         awaitTerminationAfterShutdown(executorService2);
     }
-    
-    //рекурсивная функция - вычисляет значение определителя. Если на входе определитель 2х2 - просто вычисляем (крест-на-крест), иначе раскладываем на миноры. Для каждого минора вычисляем ЕГО определитель, рекурсивно вызывая ту же функцию..
+
     public long calculateDet() {
         long det = 0;
         if (n == 2) {
@@ -120,25 +143,21 @@ public class Matrix {
         } else {
             int koef;
             for (int i = 0; i < n; i++) {
-                if (i % 2 == 1) {  //я решил не возводить в степень, а просто поставить условие - это быстрее. Т.к. я раскладываю всегда по первой (читай - "нулевой") строке, то фактически я проверяю на четность значение i+0.
+                if (i % 2 == 1) {
                     koef = -1;
                 } else {
                     koef = 1;
                 }
-                //собственно разложение:
-//                calcResult += koeff * mainMatrix[0][i] * this.CalculateMatrix(this.GetMinor(mainMatrix, 0, i));
                 det += koef * mainMatrix[0][i] * getMinor(0, i).calculateDet();
             }
         }
-        //возвращаем ответ
         return det;
     }
-    
-    //функция, к-я возвращает нужный нам минор. На входе - определитель, из к-го надо достать минор и номера строк-столбцов, к-е надо вычеркнуть.
+
     private Matrix getMinor(int row, int column) {
         int minorLength = n - 1;
         Matrix minor = new Matrix(minorLength);
-        int dI = 0;//эти переменные для того, чтобы "пропускать" ненужные нам строку и столбец
+        int dI = 0;
         int dJ = 0;
         for (int i = 0; i <= minorLength; i++) {
             dJ = 0;
@@ -155,13 +174,12 @@ public class Matrix {
             }
         }
         return minor;
-        
+
     }
-    
+
     public Matrix getComplement() {
         Matrix complementMatrix = new Matrix(n);
         final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
-        final List<Future<?>> futures = new ArrayList<Future<?>>();
         final int range = n / nThreads;
         for (int count = 0; count < nThreads; ++count) {
             final int startAt = count * range;
@@ -175,16 +193,15 @@ public class Matrix {
         awaitTerminationAfterShutdown(executorService);
         return complementMatrix;
     }
-    
+
     private void complementParallelFunc(int i, Matrix matrix) {
-        final ExecutorService executorService2 = Executors.newFixedThreadPool(nThreads);
-        final List<Future<?>> futures2 = new ArrayList<Future<?>>();
-        final int range2 = n / nThreads;
-        for (int count2 = 0; count2 < nThreads; ++count2) {
-            final int startAt2 = count2 * range2;
-            final int endAt2 = startAt2 + range2;
-            executorService2.submit(() -> {
-                for (int j = startAt2; j < endAt2; j++) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        final int range = n / nThreads;
+        for (int count = 0; count < nThreads; ++count) {
+            final int startAt = count * range;
+            final int endAt = startAt + range;
+            executorService.submit(() -> {
+                for (int j = startAt; j < endAt; j++) {
                     int koef;
                     if ((i + j) % 2 == 1) {
                         koef = -1;
@@ -195,9 +212,9 @@ public class Matrix {
                 }
             });
         }
-        awaitTerminationAfterShutdown(executorService2);
+        awaitTerminationAfterShutdown(executorService);
     }
-    
+
     public static void awaitTerminationAfterShutdown(final ExecutorService threadPool) {
         threadPool.shutdown();
         try {
@@ -209,18 +226,45 @@ public class Matrix {
             Thread.currentThread().interrupt();
         }
     }
-    
-    public Matrix getInverse() {
-        Matrix inverseMatrix = getComplement().transpone();
-        inverseMatrix.matrixKoef = 1.0 / calculateDet();
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                inverseMatrix.doubleMatrix[i][j] = inverseMatrix.matrixKoef * inverseMatrix.mainMatrix[i][j];
+
+    public Matrix getInverse() throws DeterminantIsZero {
+        long det = calculateDet();
+        if (det != 0) {
+            Matrix inverseMatrix = getComplement().transpone();
+            inverseMatrix.matrixKoef = 1.0 / det;
+            final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+            final int range = n / nThreads;
+            for (int count = 0; count < nThreads; ++count) {
+                final int startAt = count * range;
+                final int endAt = startAt + range;
+                executorService.submit(() -> {
+                    for (int i = startAt; i < endAt; i++) {
+                        inverseMatrix.inverseParallelFunc(i);
+                    }
+                });
             }
+            awaitTerminationAfterShutdown(executorService);
+
+            return inverseMatrix;
         }
-        return inverseMatrix;
+        throw new DeterminantIsZero();
     }
-    
+
+    private void inverseParallelFunc(int i) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        final int range = n / nThreads;
+        for (int count = 0; count < nThreads; ++count) {
+            final int startAt = count * range;
+            final int endAt = startAt + range;
+            executorService.submit(() -> {
+                for (int j = startAt; j < endAt; j++) {
+                    doubleMatrix[i][j] = matrixKoef * mainMatrix[i][j];
+                }
+            });
+        }
+        awaitTerminationAfterShutdown(executorService);
+    }
+
     public Matrix multiply(Matrix second) throws NotEqualLengthsOfMatrixException {
         if (n != second.n)
             throw new NotEqualLengthsOfMatrixException();
@@ -237,18 +281,5 @@ public class Matrix {
             return tmpMatrix;
         }
     }
-/*
-    public Matrix multInt(double k) {
-        Matrix mulIntMatrix = new Matrix(n);
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                mulIntMatrix.setElement(i, j, k * mainMatrix[i][j]);
-            }
-        }
-        return mulIntMatrix;
-    }
-*/
 }
 
-class NotEqualLengthsOfMatrixException extends Exception {
-}
